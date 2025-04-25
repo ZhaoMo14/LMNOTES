@@ -1,0 +1,7 @@
+fastapi==0.115.9
+uvicorn==0.34.0
+pymongo==4.6.2
+python-dotenv==1.1.0
+pydantic==2.11.1
+sentence-transformers==4.1.0
+numpy==1.26.4 
