@@ -117,6 +117,27 @@ def search_notes(query: str, limit: int = 5, threshold: float = 0.0) -> List[Dic
         print(f"搜索笔记时出错: {str(e)}")
         return []
 
+def remove_from_search_index(id: str) -> None:
+    """
+    从搜索索引中删除笔记
+    
+    Args:
+        id: 要删除的笔记的唯一标识符
+    """
+    print(f"正在从搜索索引中删除笔记，ID: {id}")
+    try:
+        # 获取ChromaDB集合
+        collection = get_or_create_collection()
+        print("成功获取ChromaDB集合以进行删除")
+        
+        # 从ChromaDB删除
+        collection.delete(ids=[id])
+        print(f"成功从ChromaDB删除笔记，ID: {id}")
+    except Exception as e:
+        # 如果删除失败，记录错误，但通常我们希望即使向量删除失败，主数据库的删除也能成功
+        # 因此这里只打印错误，不向上抛出，除非有特定需求
+        print(f"从搜索索引删除笔记时出错: {str(e)}")
+
 def debug_search(query: str, limit: int = 20) -> Dict[str, Any]:
     """
     调试搜索功能

@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from ..config.db import mongo_client
 from ..schema.schemas import noteEntity, notesEntity
-from ..services.semantic_search import add_to_search_index, search_notes, debug_search
+from ..services.semantic_search import add_to_search_index, remove_from_search_index, search_notes, debug_search
 
 # 初始化路由器
 router = APIRouter()
@@ -76,25 +76,24 @@ async def update_note(id: str, note: Dict[str, Any] = Body(...)):
         return noteEntity(updated_note)
     raise HTTPException(status_code=404, detail="笔记未找到")
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_note(id: str):
-    """删除笔记"""
-    if not ObjectId.is_valid(id):
-        raise HTTPException(status_code=400, detail="无效的ID格式")
+@router.delete("/{note_id}", status_code=204)
+async def delete_note(note_id: str):
+    """删除笔记并同步删除向量索引"""
+    # 先从主数据库删除
+    delete_result = notes_collection.delete_one({"_id": ObjectId(note_id)})
     
-    # 从MongoDB中删除笔记
-    delete_result = notes_collection.delete_one({"_id": ObjectId(id)})
-    
-    if delete_result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="笔记未找到")
-    
-    # 从语义搜索索引中移除
-    # try:
-    #     remove_from_search_index(id)
-    # except Exception as e:
-    #     print(f"Error removing from search index: {e}")
-    
-    return {"status": "success"}
+    if delete_result.deleted_count == 1:
+        # 如果主数据库删除成功，再尝试从搜索索引中删除
+        try:
+            remove_from_search_index(note_id)
+        except Exception as e:
+            # 记录从索引删除失败的错误，但仍然认为主删除成功
+            print(f"主数据库删除成功，但从搜索索引删除笔记时出错: {str(e)}")
+        # 即使索引删除失败，也返回成功 (状态码 204)
+        return
+    else:
+        # 如果主数据库中没有找到笔记，则返回 404
+        raise HTTPException(status_code=404, detail="Note not found")
 
 @router.get("/search/", response_model=List[Dict[str, Any]])
 async def search(
