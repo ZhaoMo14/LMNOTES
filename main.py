@@ -7,7 +7,7 @@ import os
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(title="LMNOTES")
 
 app.include_router(note_router, prefix='/api/v1/notes')
 

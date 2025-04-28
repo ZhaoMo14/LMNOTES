@@ -206,7 +206,9 @@ async def ask_question(query: QAQuery):
 
     # 3. 构建 Prompt
     prompt = f'''
-请根据以下提供的上下文信息来回答用户的问题。请只使用上下文中的信息，不要添加任何外部知识或自己的观点。如果上下文不足以回答，请说"根据我所掌握的笔记信息，无法回答这个问题。"
+请根据以下提供的上下文信息来回答用户的问题。请只使用上下文中的信息，不要添加任何外部知识或自己的观点。
+**请尽量简洁、清晰地回答问题，最好不要超过三段话。**
+如果上下文不足以回答，请说"根据我所掌握的笔记信息，无法回答这个问题。"
 
 上下文：
 ---
@@ -222,15 +224,14 @@ async def ask_question(query: QAQuery):
 
     # 4. 调用 LLM 生成答案
     try:
-        print("正在调用 LLM API...")
+        print("正在调用 LLM API (无 max_tokens 限制)... 使用模型 deepseek-chat")
         completion = openai_client.chat.completions.create(
             model="deepseek-chat",
             messages=[
                 {"role": "system", "content": "你是一个基于用户笔记内容回答问题的助手。"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7, 
-            max_tokens=300 
+            temperature=0.7 
         )
         generated_answer = completion.choices[0].message.content.strip()
         print(f"LLM 返回答案: {generated_answer}")
