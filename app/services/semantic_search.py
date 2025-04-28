@@ -45,8 +45,8 @@ def add_to_search_index(id: str, title: str, description: str) -> None:
         collection = get_or_create_collection()
         print("成功获取ChromaDB集合")
         
-        # 添加到ChromaDB
-        collection.add(
+        # 使用 upsert 确保向量和元数据在 ID 已存在时被更新
+        collection.upsert(
             ids=[id],
             embeddings=[embedding],
             metadatas=[{
@@ -54,9 +54,9 @@ def add_to_search_index(id: str, title: str, description: str) -> None:
                 "description": description
             }]
         )
-        print(f"成功将笔记添加到ChromaDB，ID: {id}")
+        print(f"成功将笔记添加到 ChromaDB (Upsert)，ID: {id}")
     except Exception as e:
-        print(f"添加笔记到搜索索引时出错: {str(e)}")
+        print(f"添加/更新笔记到搜索索引时出错: {str(e)}")
         raise
 
 def search_notes(query: str, limit: int = 5, threshold: float = 0.0) -> List[Dict[str, Any]]:
