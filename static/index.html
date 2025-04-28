@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapNotes MVP</title>
+    <!-- 未来可以在这里添加 CSS 链接 -->
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .section h2 { margin-top: 0; }
+        #notesList li { cursor: pointer; margin-bottom: 5px; }
+        #notesList li:hover { background-color: #f0f0f0; }
+        textarea { width: 95%; }
+    </style>
+</head>
+<body>
+    <h1>SnapNotes MVP</h1>
+
+    <!-- 笔记列表区 -->
+    <div class="section">
+        <h2>笔记列表</h2>
+        <ul id="notesList">
+            <!-- 笔记将通过 JavaScript 加载到这里 -->
+            <li>加载中...</li>
+        </ul>
+    </div>
+
+    <!-- 创建/编辑笔记区 (暂时简化) -->
+    <div class="section">
+        <h2>创建/编辑笔记</h2>
+        <input type="hidden" id="noteId">
+        <div>
+            <label for="noteTitle">标题:</label><br>
+            <input type="text" id="noteTitle" size="50">
+        </div>
+        <div>
+            <label for="noteDescription">描述:</label><br>
+            <textarea id="noteDescription" rows="5"></textarea>
+        </div>
+        <button id="saveNoteBtn">保存笔记</button>
+        <button id="clearFormBtn">清空表单</button>
+    </div>
+
+    <!-- 搜索区 -->
+    <div class="section">
+        <h2>语义搜索</h2>
+        <input type="text" id="searchInput" size="50" placeholder="输入搜索查询...">
+        <button id="searchBtn">搜索</button>
+        <h3>搜索结果:</h3>
+        <ul id="searchResults">
+            <!-- 搜索结果将加载到这里 -->
+        </ul>
+    </div>
+
+    <!-- 问答区 -->
+    <div class="section">
+        <h2>智能问答 (Ask AI)</h2>
+        <input type="text" id="askInput" size="50" placeholder="向 AI 提问...">
+        <button id="askBtn">提问</button>
+        <h3>AI 回答:</h3>
+        <div id="askAnswer" style="white-space: pre-wrap; background-color: #e9e9e9; padding: 10px; border-radius: 3px; margin-bottom:10px;"></div>
+        <h3>参考来源:</h3>
+        <ul id="askSources">
+            <!-- 来源笔记将加载到这里 -->
+        </ul>
+    </div>
+
+    <!-- 引入 JavaScript 文件 -->
+    <script src="/static/script.js"></script>
+</body>
+</html> 
