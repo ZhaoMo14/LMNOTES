@@ -7,6 +7,7 @@ const noteIdInput = document.getElementById('noteId');
 const noteTitleInput = document.getElementById('noteTitle');
 const noteDescriptionInput = document.getElementById('noteDescription');
 const saveNoteBtn = document.getElementById('saveNoteBtn');
+const deleteNoteBtn = document.getElementById('deleteNoteBtn');
 const clearFormBtn = document.getElementById('clearFormBtn');
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
@@ -65,6 +66,7 @@ function populateEditForm(id, title, description) {
     noteIdInput.value = id;
     noteTitleInput.value = title;
     noteDescriptionInput.value = description;
+    deleteNoteBtn.style.display = 'inline-block';
 }
 
 // 清空编辑表单
@@ -72,6 +74,7 @@ function clearEditForm() {
     noteIdInput.value = '';
     noteTitleInput.value = '';
     noteDescriptionInput.value = '';
+    deleteNoteBtn.style.display = 'none';
 }
 
 // 保存笔记（创建或更新）
@@ -255,10 +258,23 @@ async function askQuestion() {
 // --- 事件监听器 ---
 
 // 页面加载时获取笔记列表
-document.addEventListener('DOMContentLoaded', fetchAndDisplayNotes);
+document.addEventListener('DOMContentLoaded', () => {
+    fetchAndDisplayNotes();
+    clearEditForm(); // 初始加载时确保删除按钮是隐藏的
+});
 
 // 保存按钮点击事件
 saveNoteBtn.addEventListener('click', saveNote);
+
+// 删除按钮点击事件
+deleteNoteBtn.addEventListener('click', () => {
+    const idToDelete = noteIdInput.value;
+    if (idToDelete) {
+        deleteNoteById(idToDelete);
+    } else {
+        alert('没有选中要删除的笔记');
+    }
+});
 
 // 清空表单按钮点击事件
 clearFormBtn.addEventListener('click', clearEditForm);
