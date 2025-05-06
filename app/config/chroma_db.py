@@ -35,7 +35,7 @@ def get_or_create_collection(collection_name="notes", embedding_function=None):
     
     # 尝试获取已存在的集合
     try:
-        # 注意：我们无法在获取时更改距离度量，只能在创建时指定
+        # 无法在获取时更改距离度量，只能在创建时指定
         collection = chroma_client.get_collection(
             name=collection_name,
             embedding_function=ef
