@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>基于大语言模型的智能在线笔记管理系统</title>
+    <title>LMNOTES - 智能笔记管理系统</title>
     <!-- 添加Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- 添加Bootstrap图标 -->
@@ -11,16 +11,6 @@
     <link rel="stylesheet" href="./static/style.css">
     <!-- PDF.js库 -->
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
-    <!-- Marked.js - Markdown解析库 -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
-    <!-- 代码高亮 - Prism -->
-    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
     <script>
         // 配置PDF.js worker
         if (typeof pdfjsLib !== 'undefined') {
@@ -258,35 +248,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .system-name, .system-name-short {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .system-name {
-            max-width: 220px;
-        }
-        
-        .system-name-short {
-            max-width: 120px;
-        }
-
-        /* 在移动设备上显示简短名称 */
-        @media (max-width: 768px) {
-            .system-name {
-                font-size: 0.9rem;
-                max-width: 180px;
-            }
-            
-            .system-name:after {
-                content: "...";
-            }
         }
 
         .sidebar-content {
@@ -763,378 +724,6 @@
             margin-bottom: 1rem;
             color: var(--primary-color);
         }
-
-        /* 参考来源切换区域样式 */
-        .toggle-header {
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: background-color 0.2s ease;
-        }
-        
-        .toggle-header:hover {
-            background-color: rgba(0,0,0,0.03);
-        }
-        
-        [data-theme="dark"] .toggle-header:hover {
-            background-color: rgba(255,255,255,0.05);
-        }
-        
-        .source-container-body {
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message-list {
-            max-height: none;
-            overflow-y: visible;
-        }
-        
-        .message {
-            margin-bottom: 20px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        
-        .message-header {
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .user-message .message-header {
-            background-color: rgba(99, 102, 241, 0.1);
-            color: var(--primary-color);
-        }
-        
-        .assistant-message .message-header {
-            background-color: rgba(236, 72, 153, 0.1);
-            color: var(--secondary-color);
-        }
-        
-        .message-content {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-top: none;
-            padding: 15px !important;
-        }
-        
-        /* Markdown样式增强 */
-        .message-content h1,
-        .message-content h2,
-        .message-content h3,
-        .message-content h4,
-        .message-content h5,
-        .message-content h6 {
-            margin-top: 1.2em;
-            margin-bottom: 0.8em;
-            font-weight: 600;
-            line-height: 1.25;
-        }
-        
-        .message-content h1 {
-            font-size: 1.8em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.3em;
-        }
-        
-        .message-content h2 {
-            font-size: 1.5em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.3em;
-        }
-        
-        .message-content h3 {
-            font-size: 1.3em;
-        }
-        
-        .message-content p {
-            margin-top: 0;
-            margin-bottom: 1em;
-        }
-        
-        .message-content ul,
-        .message-content ol {
-            padding-left: 2em;
-            margin-bottom: 1em;
-        }
-        
-        .message-content li {
-            margin-bottom: 0.3em;
-        }
-        
-        .message-content blockquote {
-            padding: 0 1em;
-            color: var(--text-color);
-            opacity: 0.8;
-            border-left: 0.25em solid var(--border-color);
-            margin: 0 0 1em 0;
-        }
-        
-        .message-content pre {
-            margin-bottom: 1em;
-            padding: 1em;
-            overflow: auto;
-            border-radius: 6px;
-            background-color: var(--light-gray) !important;
-            max-height: 400px;
-        }
-        
-        .message-content code {
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 0.9em;
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-            background-color: var(--light-gray);
-        }
-        
-        .message-content pre code {
-            padding: 0;
-            border-radius: 0;
-            background-color: transparent;
-            white-space: pre;
-        }
-        
-        .message-content table {
-            margin-bottom: 1em;
-            border-collapse: collapse;
-            width: 100%;
-            overflow-x: auto;
-            display: block;
-        }
-        
-        .message-content table th,
-        .message-content table td {
-            padding: 0.5em 1em;
-            border: 1px solid var(--border-color);
-        }
-        
-        .message-content table th {
-            background-color: var(--light-gray);
-            font-weight: 600;
-        }
-        
-        .message-content hr {
-            height: 0.25em;
-            padding: 0;
-            margin: 1.5em 0;
-            background-color: var(--border-color);
-            border: 0;
-        }
-        
-        /* 深色模式下代码块适配 */
-        [data-theme="dark"] .message-content pre,
-        [data-theme="dark"] .message-content code {
-            background-color: #1a2234 !important;
-        }
-        
-        [data-theme="dark"] .message-content pre code {
-            background-color: transparent !important;
-        }
-        
-        [data-theme="dark"] .message-content table th {
-            background-color: #2d3748;
-        }
-        
-        .follow-up-container {
-            background-color: var(--bg-color);
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid var(--border-color);
-        }
-        
-        /* 深色模式适配 */
-        [data-theme="dark"] .user-message .message-header {
-            background-color: rgba(99, 102, 241, 0.2);
-        }
-        
-        [data-theme="dark"] .assistant-message .message-header {
-            background-color: rgba(236, 72, 153, 0.2);
-        }
-        
-        [data-theme="dark"] .follow-up-container {
-            background-color: #1f2937;
-            border-color: #374151;
-        }
-
-        .markdown-preview {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            height: 100%;
-            overflow-y: auto;
-        }
-        
-        /* 动画效果 */
-        .animated-pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        /* 保持编辑器工具栏固定 */
-        .markdown-toolbar {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background-color: var(--card-bg);
-            padding: 5px 0;
-            border-radius: 4px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-bottom: 8px;
-        }
-        
-        .markdown-toolbar .btn {
-            border-radius: 4px;
-            padding: 2px 8px;
-            font-size: 0.8rem;
-        }
-        
-        /* 实时预览编辑器样式 */
-        .editor-realtime-preview {
-            margin: 0 -5px;
-        }
-        
-        .editor-realtime-preview .editor-container,
-        .editor-realtime-preview .preview-container {
-            padding: 0 5px;
-        }
-        
-        .editor-realtime-preview .form-control {
-            height: 400px;
-            resize: vertical;
-        }
-        
-        /* 预览滚动样式优化 */
-        .editor-realtime-preview .preview-container .markdown-preview {
-            min-height: 400px;
-            max-height: none;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* 笔记内容中的Markdown渲染样式 */
-        .note-description-preview h1,
-        .note-description-preview h2,
-        .note-description-preview h3,
-        .note-description-preview h4,
-        .note-description-preview h5,
-        .note-description-preview h6 {
-            margin-top: 1em;
-            margin-bottom: 0.5em;
-            font-weight: 600;
-        }
-
-        /* 笔记预览标题样式 */
-        .note-preview-title h1,
-        .note-preview-title h2,
-        .note-preview-title h3,
-        .note-preview-title h4,
-        .note-preview-title h5,
-        .note-preview-title h6 {
-            margin: 0;
-            padding: 0;
-            font-size: 0.9rem;
-            line-height: 1.2;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: var(--text-color);
-            opacity: 0.85;
-        }
-        
-        /* 深色模式下编辑器适配 */
-        [data-theme="dark"] .editor-realtime-preview textarea,
-        [data-theme="dark"] .editor-realtime-preview .markdown-preview {
-            background-color: var(--card-bg);
-            color: var(--text-color);
-            border-color: var(--border-color);
-        }
-        
-        [data-theme="dark"] .markdown-toolbar .btn-light {
-            background-color: #2d3748;
-            color: #e5e7eb;
-            border-color: #4b5563;
-        }
-        
-        [data-theme="dark"] .markdown-toolbar .btn-light:hover {
-            background-color: #4a5568;
-        }
-        
-        /* 表单开关样式适配 */
-        [data-theme="dark"] .form-check-input:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        [data-theme="dark"] .form-check-label {
-            color: var(--text-color);
-        }
-
-        /* 移动设备下响应式调整 */
-        @media (max-width: 768px) {
-            .editor-realtime-preview {
-                display: flex;
-                flex-direction: column;
-            }
-            
-            .editor-realtime-preview .editor-container,
-            .editor-realtime-preview .preview-container {
-                width: 100%;
-                padding: 0;
-            }
-            
-            .editor-realtime-preview .form-control {
-                height: 250px;
-            }
-            
-            .editor-realtime-preview .preview-container .markdown-preview {
-                min-height: 250px;
-                margin-top: 15px;
-            }
-            
-            .markdown-toolbar {
-                flex-wrap: wrap;
-                justify-content: center;
-                margin-bottom: 10px;
-            }
-            
-            .markdown-toolbar .btn {
-                padding: 2px 6px;
-                font-size: 0.75rem;
-            }
-        }
-
-        /* 添加鼠标指针样式 */
-        .cursor-pointer {
-            cursor: pointer;
-        }
-        
-        .source-item {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-left: 3px solid transparent;
-        }
-        
-        .source-item:hover {
-            border-left-color: var(--secondary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
     </style>
 </head>
 <body>
@@ -1144,8 +733,7 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="bi bi-journal-text"></i>
-                    <span class="system-name d-none d-md-inline">基于大语言模型的智能在线笔记管理系统</span>
-                    <span class="system-name-short d-md-none">智能笔记系统</span>
+                    <span>LMNOTES</span>
                 </div>
                 <button class="btn btn-sm btn-icon btn-primary" @click="clearForm" title="创建新笔记">
                     <i class="bi bi-plus-lg"></i>
@@ -1194,12 +782,8 @@
                                               title="笔记ID">{{ formatId(note.id) }}</span>
                                     </div>
                                 </div>
-                                <!-- 使用Markdown预览 -->
-                                <div v-if="note.description && note.description.indexOf('#') === 0" class="mb-1 text-muted small">
-                                    <span v-html="parseMarkdown(note.description.split('\n')[0])" class="note-preview-title"></span>
-                                </div>
-                                <p v-else class="mb-1 text-truncate text-muted small" v-if="note.description">
-                                    {{ stripMarkdown(note.description).substring(0, 100) }}
+                                <p class="mb-1 text-truncate text-muted small" v-if="note.description">
+                                    {{ note.description.substring(0, 100) }}
                                 </p>
                                 <div class="d-flex align-items-center mt-1">
                                     <span class="note-tag badge bg-light text-primary" v-if="getWordCount(note.description) > 0">
@@ -1209,8 +793,8 @@
                             </div>
                         </li>
                     </transition-group>
-                </ul>
-            </div>
+        </ul>
+    </div>
         </div>
         
         <!-- 主内容区 -->
@@ -1245,23 +829,23 @@
                         <i class="bi" :class="{'bi-moon-stars': isDarkTheme, 'bi-sun': !isDarkTheme}"></i>
                     </button>
                 </div>
-            </div>
-
+        </div>
+            
             <!-- 内容区域 -->
             <div class="content-area">
                 <transition name="fade" mode="out-in">
                     <!-- 搜索结果 -->
-                    <div v-if="view.current === 'search' && search.hasSearched && search.results.length > 0" class="search-results-container">
+                    <div v-if="search.hasSearched && search.results.length > 0" class="search-results-container">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0">
                                 <i class="bi bi-search me-2 text-primary"></i>
                                 搜索结果: <span class="text-primary">"{{ search.query }}"</span>
                                 <span class="badge bg-primary ms-2">{{ search.results.length }}条</span>
                             </h5>
-                            <button class="btn btn-sm btn-outline-secondary" @click="search.hasSearched = false; view.current = 'editor'">
+                            <button class="btn btn-sm btn-outline-secondary" @click="search.hasSearched = false">
                                 <i class="bi bi-x"></i> 关闭搜索
                             </button>
-                        </div>
+    </div>
 
                         <ul id="searchResults" class="p-0">
                             <transition-group name="slide">
@@ -1279,293 +863,66 @@
                                         </span>
                                     </div>
                                     <p class="mb-0 mt-2 result-description" v-if="result.metadata?.description">
-                                        {{ stripMarkdown(result.metadata.description).substring(0, 120) }}...
+                                        {{ result.metadata.description.substring(0, 120) }}...
                                     </p>
                                     <div class="result-footer d-flex justify-content-between align-items-center mt-2">
                                         <span class="text-primary small">点击查看</span>
                                     </div>
                                 </li>
                             </transition-group>
-                        </ul>
-                    </div>
+        </ul>
+    </div>
 
                     <!-- 问答结果 -->
-                    <div v-else-if="view.current === 'qa' && qa.hasAsked" class="qa-results-container">
+                    <div v-else-if="qa.hasAsked && qa.answer" class="qa-results-container">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0">
                                 <i class="bi bi-chat-left-dots me-2 text-secondary-accent"></i>
-                                <span v-if="qa.isFollowUp" class="badge bg-info me-2">对话中</span>
-                                智能问答
+                                问题: <span class="text-secondary-accent">"{{ qa.question }}"</span>
                             </h5>
-                            <div>
-                                <button class="btn btn-sm btn-outline-secondary" @click="startNewQuestion">
-                                    <i class="bi bi-x"></i> 结束对话
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 对话历史记录区域 - 始终显示 -->
-                        <div class="conversation-history mb-4">
-                            <div class="message-list">
-                                <div v-for="(message, index) in qa.messageHistory" :key="index" 
-                                     :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']">
-                                    <div class="message-header">
-                                        <span class="message-sender">
-                                            <i :class="['bi me-1', message.role === 'user' ? 'bi-person-circle' : 'bi-robot']"></i>
-                                            {{ message.role === 'user' ? '你' : 'AI助手' }}
-                                        </span>
-                                        <span class="message-time">{{ formatTimestamp(message.timestamp) }}</span>
-                                    </div>
-                                    <div class="message-content p-3" v-html="message.role === 'user' ? message.content : parseMarkdown(message.content)"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 问题输入框 - 直接在对话下方 -->
-                        <div class="follow-up-container mt-4 mb-4">
-                            <div class="input-group qa-input-group">
-                                <span class="input-group-text border-end-0">
-                                    <i class="bi bi-chat-dots text-secondary-accent"></i>
-                                </span>
-                                <input type="text" class="form-control border-start-0" 
-                                       placeholder="继续提问..." 
-                                       v-model="qa.question"
-                                       @keyup.enter="askQuestion">
-                                <button class="btn btn-secondary-accent"
-                                        @click="askQuestion"
-                                        :disabled="loading.ask || !qa.question.trim()"
-                                        style="min-width: 100px;">
-                                    <span v-if="loading.ask">
-                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        思考中...
-                                    </span>
-                                    <span v-else>
-                                        <i class="bi bi-send me-1"></i> 发送
-                                    </span>
-                                </button>
-                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" @click="qa.hasAsked = false">
+                                <i class="bi bi-x"></i> 关闭结果
+                            </button>
                         </div>
                         
-                        <!-- 参考来源区域 -->
+                        <div id="askAnswer" v-html="qa.answer"></div>
+                        
                         <div class="sources-container mt-4">
-                            <h6 class="mb-3 d-flex align-items-center toggle-header" @click="qa.showSources = !qa.showSources">
+                            <h6 class="mb-3">
                                 <i class="bi bi-link-45deg me-2"></i>
-                                参考来源
+                                参考来源:
                                 <span v-if="qa.sources && qa.sources.length" 
                                       class="badge bg-secondary-accent ms-2">{{ qa.sources.length }}个</span>
-                                <i class="bi ms-auto" :class="qa.showSources ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                             </h6>
-                            <div v-show="qa.showSources" class="source-container-body">
-                                <div v-if="!qa.sources || qa.sources.length === 0" class="empty-state">
-                                    <i class="bi bi-info-circle"></i>
-                                    <em>无参考来源</em>
-                                </div>
-                                <ul v-else id="askSources" class="p-0">
-                                    <transition-group name="slide">
-                                        <li v-for="source in qa.sources" 
-                                            :key="source.id"
-                                            class="source-item"
-                                            @click="selectQASource(source)">
-                                            <div class="source-header d-flex justify-content-between align-items-center">
-                                                <h6 class="mb-0">
-                                                    <i class="bi bi-journal-text me-2"></i>
-                                                    {{ source.metadata?.title || '无标题' }}
-                                                </h6>
-                                                <span class="badge bg-secondary-accent">
-                                                    相似度: {{ formatSimilarity(source.similarity) }}
-                                                </span>
-                                            </div>
-                                            <p class="mb-0 mt-2 source-description" v-if="source.metadata?.description">
-                                                {{ stripMarkdown(source.metadata.description).substring(0, 100) }}...
-                                            </p>
-                                            <div class="mt-2 d-flex justify-content-end">
-                                                <span class="text-secondary-accent small cursor-pointer">
-                                                    <i class="bi bi-box-arrow-up-right me-1"></i>查看笔记详情
-                                                </span>
-                                            </div>
-                                        </li>
-                                    </transition-group>
-                                </ul>
+                            <div v-if="!qa.sources || qa.sources.length === 0" class="empty-state">
+                                <i class="bi bi-info-circle"></i>
+                                <em>无参考来源</em>
                             </div>
+                            <ul v-else id="askSources" class="p-0">
+                                <transition-group name="slide">
+                                    <li v-for="source in qa.sources" 
+                                        :key="source.id"
+                                        class="source-item"
+                                        @click="selectQASource(source)">
+                                        <div class="source-header d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-journal-text me-2"></i>
+                                                {{ source.metadata?.title || '无标题' }}
+                                            </h6>
+                                            <span class="badge bg-secondary-accent">
+                                                相似度: {{ formatSimilarity(source.similarity) }}
+                                            </span>
+                                        </div>
+                                        <p class="mb-0 mt-2 source-description" v-if="source.metadata?.description">
+                                            {{ source.metadata.description.substring(0, 100) }}...
+                                        </p>
+                                        <div class="mt-2 d-flex justify-content-end">
+                                            <span class="text-secondary-accent small">点击查看</span>
+                                        </div>
+                                    </li>
+                                </transition-group>
+        </ul>
                         </div>
-                        
-                        <style>
-                            .message-list {
-                                max-height: none;
-                                overflow-y: visible;
-                            }
-                            
-                            .message {
-                                margin-bottom: 20px;
-                                border-radius: 12px;
-                                overflow: hidden;
-                                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-                            }
-                            
-                            .message-header {
-                                padding: 8px 12px;
-                                font-size: 0.85rem;
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                            }
-                            
-                            .user-message .message-header {
-                                background-color: rgba(99, 102, 241, 0.1);
-                                color: var(--primary-color);
-                            }
-                            
-                            .assistant-message .message-header {
-                                background-color: rgba(236, 72, 153, 0.1);
-                                color: var(--secondary-color);
-                            }
-                            
-                            .message-content {
-                                background-color: var(--card-bg);
-                                border: 1px solid var(--border-color);
-                                border-top: none;
-                                padding: 15px !important;
-                            }
-                            
-                            /* Markdown样式增强 */
-                            .message-content h1,
-                            .message-content h2,
-                            .message-content h3,
-                            .message-content h4,
-                            .message-content h5,
-                            .message-content h6 {
-                                margin-top: 1.2em;
-                                margin-bottom: 0.8em;
-                                font-weight: 600;
-                                line-height: 1.25;
-                            }
-                            
-                            .message-content h1 {
-                                font-size: 1.8em;
-                                border-bottom: 1px solid var(--border-color);
-                                padding-bottom: 0.3em;
-                            }
-                            
-                            .message-content h2 {
-                                font-size: 1.5em;
-                                border-bottom: 1px solid var(--border-color);
-                                padding-bottom: 0.3em;
-                            }
-                            
-                            .message-content h3 {
-                                font-size: 1.3em;
-                            }
-                            
-                            .message-content p {
-                                margin-top: 0;
-                                margin-bottom: 1em;
-                            }
-                            
-                            .message-content ul,
-                            .message-content ol {
-                                padding-left: 2em;
-                                margin-bottom: 1em;
-                            }
-                            
-                            .message-content li {
-                                margin-bottom: 0.3em;
-                            }
-                            
-                            .message-content blockquote {
-                                padding: 0 1em;
-                                color: var(--text-color);
-                                opacity: 0.8;
-                                border-left: 0.25em solid var(--border-color);
-                                margin: 0 0 1em 0;
-                            }
-                            
-                            .message-content pre {
-                                margin-bottom: 1em;
-                                padding: 1em;
-                                overflow: auto;
-                                border-radius: 6px;
-                                background-color: var(--light-gray) !important;
-                                max-height: 400px;
-                            }
-                            
-                            .message-content code {
-                                font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-                                font-size: 0.9em;
-                                padding: 0.2em 0.4em;
-                                border-radius: 3px;
-                                background-color: var(--light-gray);
-                            }
-                            
-                            .message-content pre code {
-                                padding: 0;
-                                border-radius: 0;
-                                background-color: transparent;
-                                white-space: pre;
-                            }
-                            
-                            .message-content table {
-                                margin-bottom: 1em;
-                                border-collapse: collapse;
-                                width: 100%;
-                                overflow-x: auto;
-                                display: block;
-                            }
-                            
-                            .message-content table th,
-                            .message-content table td {
-                                padding: 0.5em 1em;
-                                border: 1px solid var(--border-color);
-                            }
-                            
-                            .message-content table th {
-                                background-color: var(--light-gray);
-                                font-weight: 600;
-                            }
-                            
-                            .message-content hr {
-                                height: 0.25em;
-                                padding: 0;
-                                margin: 1.5em 0;
-                                background-color: var(--border-color);
-                                border: 0;
-                            }
-                            
-                            /* 深色模式下代码块适配 */
-                            [data-theme="dark"] .message-content pre,
-                            [data-theme="dark"] .message-content code {
-                                background-color: #1a2234 !important;
-                            }
-                            
-                            [data-theme="dark"] .message-content pre code {
-                                background-color: transparent !important;
-                            }
-                            
-                            [data-theme="dark"] .message-content table th {
-                                background-color: #2d3748;
-                            }
-                            
-                            .follow-up-container {
-                                background-color: var(--bg-color);
-                                border-radius: 12px;
-                                padding: 15px;
-                                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                                border: 1px solid var(--border-color);
-                            }
-                            
-                            /* 深色模式适配 */
-                            [data-theme="dark"] .user-message .message-header {
-                                background-color: rgba(99, 102, 241, 0.2);
-                            }
-                            
-                            [data-theme="dark"] .assistant-message .message-header {
-                                background-color: rgba(236, 72, 153, 0.2);
-                            }
-                            
-                            [data-theme="dark"] .follow-up-container {
-                                background-color: #1f2937;
-                                border-color: #374151;
-                            }
-                        </style>
                     </div>
                     
                     <!-- 默认显示编辑区域 -->
@@ -1576,18 +933,11 @@
                                     <i class="bi bi-pencil-square me-2"></i> 
                                     {{ currentNote.id ? '编辑笔记' : '创建笔记' }}
                                 </h5>
-                                <div class="d-flex align-items-center">
-                                    <div v-if="qa.showReturnToQA" class="me-3">
-                                        <button class="btn btn-sm btn-secondary-accent" @click="returnToQA">
-                                            <i class="bi bi-arrow-left-circle me-1"></i> 返回问答
-                                        </button>
-                                    </div>
-                                    <div v-if="currentNote.id" class="note-info">
-                                        <span class="badge bg-light text-dark d-flex align-items-center">
-                                            <i class="bi bi-hash me-1"></i>
-                                            {{ formatId(currentNote.id) }}
-                                        </span>
-                                    </div>
+                                <div v-if="currentNote.id" class="note-info">
+                                    <span class="badge bg-light text-dark d-flex align-items-center">
+                                        <i class="bi bi-hash me-1"></i>
+                                        {{ formatId(currentNote.id) }}
+                                    </span>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -1607,43 +957,9 @@
                                         <small class="text-muted ms-2" v-if="currentNote.description">
                                             ({{ getWordCount(currentNote.description) }}字)
                                         </small>
-                                        <div class="ms-auto">
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" id="realtimePreview"
-                                                       v-model="editor.realtimePreview" 
-                                                       @change="saveUserPreferences">
-                                                <label class="form-check-label" for="realtimePreview">
-                                                    <i class="bi bi-lightning-charge me-1"></i>实时预览
-                                                </label>
-                                            </div>
-                                        </div>
                                     </label>
-                                    
-                                    <!-- 实时预览布局 -->
-                                    <div v-if="editor.realtimePreview" class="row editor-realtime-preview">
-                                        <div class="col-md-6 editor-container">
-                                            <textarea class="form-control" id="noteDescription" rows="12" 
-                                                      v-model="currentNote.description" placeholder="输入笔记内容，支持Markdown语法..."></textarea>
-                                        </div>
-                                        <div class="col-md-6 preview-container">
-                                            <div class="form-control markdown-preview h-100" style="overflow-y: auto;">
-                                                <div v-html="parseMarkdown(currentNote.description)" class="message-content p-3"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 仅编辑模式 -->
-                                    <div v-else>
-                                        <textarea class="form-control" id="noteDescription" rows="12" 
-                                                  v-model="currentNote.description" placeholder="输入笔记内容，支持Markdown语法..."></textarea>
-                                    </div>
-                                    
-                                    <div class="form-text mt-1">
-                                        <i class="bi bi-markdown me-1"></i>支持 Markdown 语法，如 # 标题、**粗体**、*斜体*、列表、代码块等
-                                        <span v-if="editor.isDirty" class="text-warning ms-2 animated-pulse">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>未保存的更改
-                                        </span>
-                                    </div>
+                                    <textarea class="form-control" id="noteDescription" rows="12" 
+                                              v-model="currentNote.description" placeholder="输入笔记内容..."></textarea>
                                 </div>
                                 
                                 <div class="d-flex gap-2 flex-wrap">
@@ -1713,6 +1029,23 @@
                                             <i class="bi bi-send me-1"></i> 提问
                                         </span>
                                     </button>
+                                </div>
+                                <div class="qa-suggestions" v-if="!qa.question.trim()">
+                                    <p class="text-muted small mb-2">示例问题:</p>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <button class="btn btn-sm btn-light suggestion-btn" 
+                                                @click="qa.question = '总结一下我所有的笔记内容'">
+                                            总结一下我所有的笔记内容
+                                        </button>
+                                        <button class="btn btn-sm btn-light suggestion-btn" 
+                                                @click="qa.question = '帮我找出与人工智能相关的笔记'">
+                                            帮我找出与人工智能相关的笔记
+                                        </button>
+                                        <button class="btn btn-sm btn-light suggestion-btn" 
+                                                @click="qa.question = '我的笔记有哪些关键主题？'">
+                                            我的笔记有哪些关键主题？
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
