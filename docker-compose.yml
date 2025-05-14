@@ -1,32 +1,5 @@
 version: '3.8'
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"  # 与Dockerfile中EXPOSE一致
-    volumes:
-      - ./app:/app/app
-      - ./main.py:/app/main.py
-    depends_on:
-      - mongo
-      - chromadb
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8000
-    restart: always
-
-  mongo:
-    image: mongo:latest
-    volumes:
-      - mongo-data:/data/db
-    ports:
-      - "27017:27017"
-    restart: always
-
   chromadb:
     image: ghcr.io/chroma-core/chroma:latest
     ports:
@@ -36,8 +9,6 @@ services:
     environment:
       - ALLOW_RESET=true
       - ANONYMIZED_TELEMETRY=false
-    restart: always
 
 volumes:
-  mongo-data:
   chroma-data:
