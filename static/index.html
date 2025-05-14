@@ -3,71 +3,1122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>基于大语言模型的智能在线笔记管理系统</title>
-    <!-- 未来可以在这里添加 CSS 链接 -->
+    <title>LMNOTES - 智能笔记管理系统</title>
+    <!-- 添加Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 添加Bootstrap图标 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="./static/style.css">
+    <!-- PDF.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
+    <script>
+        // 配置PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+        }
+    </script>
     <style>
-        body { font-family: sans-serif; margin: 20px; }
-        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
-        .section h2 { margin-top: 0; }
-        #notesList li { cursor: pointer; margin-bottom: 5px; }
-        #notesList li:hover { background-color: #f0f0f0; }
-        textarea { width: 95%; }
+        :root {
+            /* 亮色主题变量 */
+            --primary-color: #6366f1;
+            --secondary-color: #ec4899;
+            --bg-color: #f9fafb;
+            --text-color: #1f2937;
+            --light-gray: #f3f4f6;
+            --border-color: #e5e7eb;
+            --card-bg: white;
+            --header-bg: white;
+            --sidebar-bg: white;
+            --sidebar-width: 280px;
+            --header-height: 60px;
+            --transition-speed: 0.3s;
+            --card-radius: 12px;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        /* 深色主题变量 */
+        [data-theme="dark"] {
+            --primary-color: #818cf8;
+            --secondary-color: #f472b6;
+            --bg-color: #111827;
+            --text-color: #f9fafb;
+            --light-gray: #1f2937;
+            --border-color: #374151;
+            --card-bg: #1f2937;
+            --header-bg: #111827;
+            --sidebar-bg: #1f2937;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        /* 深色模式额外样式覆盖 */
+        [data-theme="dark"] .note-tag.badge.bg-light {
+            background-color: #374151 !important;
+            color: #a5b4fc !important;
+        }
+        
+        [data-theme="dark"] .text-muted {
+            color: #9ca3af !important;
+        }
+        
+        [data-theme="dark"] .form-control {
+            background-color: #1f2937;
+            color: #f9fafb;
+            border-color: #4b5563;
+        }
+        
+        [data-theme="dark"] .input-group-text {
+            background-color: #1f2937;
+            color: #f9fafb;
+            border-color: #4b5563;
+        }
+        
+        [data-theme="dark"] .form-text {
+            color: #9ca3af !important;
+        }
+        
+        [data-theme="dark"] .badge.bg-light.text-dark {
+            background-color: #374151 !important;
+            color: #e5e7eb !important;
+        }
+        
+        [data-theme="dark"] .badge.text-primary {
+            color: #a5b4fc !important;
+        }
+        
+        [data-theme="dark"] .suggestion-btn {
+            background-color: #1f2937;
+            color: #e5e7eb;
+            border-color: #4b5563;
+        }
+        
+        [data-theme="dark"] .suggestion-btn:hover {
+            background-color: var(--primary-color);
+            color: #f9fafb;
+        }
+        
+        [data-theme="dark"] .bg-light {
+            background-color: #1f2937 !important;
+        }
+        
+        [data-theme="dark"] .text-dark {
+            color: #e5e7eb !important;
+        }
+        
+        [data-theme="dark"] .border.rounded.p-2.bg-light {
+            background-color: #111827 !important;
+            border-color: #4b5563 !important;
+        }
+        
+        /* 深色模式下搜索区域增强 */
+        [data-theme="dark"] .search-container .input-group-text {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+        }
+        
+        [data-theme="dark"] .search-container .form-control {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f9fafb !important;
+        }
+        
+        /* 深色模式下编辑笔记区域增强 */
+        [data-theme="dark"] .card {
+            background-color: #1f2937 !important;
+            border-color: #374151 !important;
+        }
+        
+        [data-theme="dark"] .card-header {
+            background-color: #111827 !important;
+            border-color: #374151 !important;
+            color: #f9fafb !important;
+        }
+        
+        [data-theme="dark"] .card-body {
+            background-color: #1f2937 !important;
+            color: #f9fafb !important;
+        }
+        
+        [data-theme="dark"] .form-label {
+            color: #e5e7eb !important;
+        }
+        
+        [data-theme="dark"] textarea.form-control {
+            background-color: #111827 !important;
+            color: #f9fafb !important;
+            border-color: #4b5563 !important;
+        }
+        
+        /* 深色模式下按钮增强 */
+        [data-theme="dark"] .btn-secondary {
+            background-color: #4b5563 !important;
+            border-color: #374151 !important;
+            color: #f9fafb !important;
+        }
+        
+        [data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+            background-color: #6b7280 !important;
+        }
+        
+        [data-theme="dark"] .btn-light {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #e5e7eb !important;
+        }
+        
+        [data-theme="dark"] .btn-outline-secondary {
+            border-color: #6b7280 !important;
+            color: #e5e7eb !important;
+        }
+        
+        [data-theme="dark"] .btn-outline-secondary:hover {
+            background-color: #4b5563 !important;
+            color: #f9fafb !important;
+        }
+        
+        /* 深色模式下智能问答区域增强 */
+        [data-theme="dark"] #askAnswer {
+            background-color: #111827 !important;
+            border-color: var(--primary-color) !important;
+            color: #f9fafb !important;
+        }
+        
+        [data-theme="dark"] .qa-input-group {
+            border-color: #4b5563 !important;
+        }
+        
+        /* 深色模式下搜索结果增强 */
+        [data-theme="dark"] .search-result-item, 
+        [data-theme="dark"] .source-item {
+            background-color: #111827 !important;
+            border-left-color: transparent !important;
+        }
+        
+        [data-theme="dark"] .search-result-item:hover, 
+        [data-theme="dark"] .source-item:hover {
+            background-color: #1f2937 !important;
+            border-left-color: var(--primary-color) !important;
+        }
+        
+        [data-theme="dark"] .search-result-item h6, 
+        [data-theme="dark"] .source-item h6 {
+            color: #e5e7eb !important;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        /* 主布局 */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background-color: var(--sidebar-bg);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            transition: transform var(--transition-speed), background-color var(--transition-speed);
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-content {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-title {
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .topbar {
+            height: var(--header-height);
+            background-color: var(--header-bg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 100;
+            transition: background-color var(--transition-speed);
+        }
+
+        .search-container {
+            flex-grow: 1;
+            max-width: 500px;
+        }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* 笔记列表 */
+        #notesList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .note-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color var(--transition-speed), border-left-width var(--transition-speed);
+        }
+
+        .note-item:hover {
+            background-color: #f0f7ff;
+        }
+        
+        /* 深色模式下笔记列表项悬停效果 */
+        [data-theme="dark"] .note-item:hover {
+            background-color: #2d3748 !important;
+        }
+        
+        [data-theme="dark"] .note-item:hover .note-title,
+        [data-theme="dark"] .note-item:hover .badge,
+        [data-theme="dark"] .note-item:hover .text-muted {
+            color: #f9fafb !important;
+        }
+        
+        /* 亮色模式下笔记列表项悬停效果 */
+        .note-item:hover .note-title {
+            color: #1a56db;
+        }
+
+        .note-item.active {
+            background-color: #e0eeff;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        /* 深色模式下激活的笔记列表项 */
+        [data-theme="dark"] .note-item.active {
+            background-color: #374151 !important;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        [data-theme="dark"] .note-item.active .note-title,
+        [data-theme="dark"] .note-item.active .badge {
+            color: #f9fafb !important;
+        }
+
+        .note-title {
+            font-size: 1.05rem;
+            margin-right: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 160px;
+        }
+        
+        .note-tag {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--card-shadow);
+            border: none;
+            margin-bottom: 20px;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed), background-color var(--transition-speed);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.08);
+        }
+
+        .card-header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+            font-weight: 600;
+            color: var(--text-color);
+            border-top-left-radius: var(--card-radius);
+            border-top-right-radius: var(--card-radius);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color var(--transition-speed);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* 按钮样式 */
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #5254cc;
+            border-color: #5254cc;
+        }
+
+        .btn-secondary-accent {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary-accent:hover {
+            background-color: #d03177;
+            border-color: #d03177;
+            color: white;
+        }
+
+        .btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            padding: 0;
+        }
+
+        /* 搜索结果和问答区域 */
+        .search-result-item, .source-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: background-color var(--transition-speed), transform var(--transition-speed);
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .search-result-item:hover, .source-item:hover {
+            background-color: #f0f7ff;
+            transform: translateY(-2px);
+            border-left-color: var(--primary-color);
+        }
+
+        #askAnswer {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(99, 102, 241, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: fixed;
+                bottom: 0;
+                transform: translateY(calc(100% - var(--header-height)));
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.expanded {
+                transform: translateY(0);
+                height: 60vh; /* 设置为视口高度的60% */
+                max-height: 450px; /* 添加最大高度限制 */
+                overflow-y: auto;
+            }
+            
+            .sidebar-header {
+                height: var(--header-height);
+                padding: 0 15px;
+            }
+            
+            .main-content {
+                margin-bottom: var(--header-height);
+            }
+            
+            .content-area {
+                padding: 15px;
+            }
+        }
+
+        /* 过渡效果 */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity var(--transition-speed);
+        }
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        .slide-enter-active, .slide-leave-active {
+            transition: transform var(--transition-speed);
+        }
+        .slide-enter-from, .slide-leave-to {
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+
+        /* 美化输入框 */
+        .form-control {
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.2s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        /* 美化按钮 */
+        .btn {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background-color: #5254cc;
+            border-color: #5254cc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
+        }
+        
+        .btn-secondary-accent {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+            box-shadow: 0 2px 4px rgba(236, 72, 153, 0.2);
+        }
+        
+        .btn-secondary-accent:hover:not(:disabled) {
+            background-color: #d03177;
+            border-color: #d03177;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(236, 72, 153, 0.3);
+        }
+        
+        .btn-secondary-accent:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(236, 72, 153, 0.2);
+        }
+        
+        .btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            padding: 0;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        .btn-icon:hover {
+            background-color: var(--light-gray);
+        }
+        
+        /* 改进卡片悬停效果 */
+        .card {
+            transform: translate(0, 0);
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 输入组样式改进 */
+        .input-group {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .input-group-text {
+            background-color: var(--bg-color);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        /* 徽章美化 */
+        .badge {
+            padding: 0.4em 0.8em;
+            font-weight: 500;
+            border-radius: 6px;
+        }
+        
+        /* 下拉菜单与滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background-color: var(--bg-color);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(99, 102, 241, 0.3);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(99, 102, 241, 0.5);
+        }
+        
+        /* 更多流畅动画 */
+        .note-editor-container,
+        .search-results-container,
+        .qa-results-container {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 提示和状态信息改进 */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+        
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        /* 问答建议按钮 */
+        .suggestion-btn {
+            font-size: 0.85rem;
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+        
+        .suggestion-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        /* 改进问答区域样式 */
+        .qa-input-group {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 源代码块样式 */
+        pre, code {
+            background-color: var(--light-gray);
+            border-radius: 6px;
+            padding: 0.2em 0.4em;
+            font-family: 'Courier New', monospace;
+        }
+        
+        pre {
+            padding: 1em;
+            overflow-x: auto;
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        /* 欢迎消息 */
+        .welcome-message {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .welcome-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
     </style>
 </head>
 <body>
-    <h1>基于大语言模型的智能在线笔记管理系统</h1>
-
-    <!-- 笔记列表区 -->
-    <div class="section">
-        <h2>笔记列表</h2>
-        <ul id="notesList">
-            <!-- 笔记将通过 JavaScript 加载到这里 -->
-            <li>加载中...</li>
+    <div id="vue-app" class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar" :class="{ 'expanded': sidebarExpanded }">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="bi bi-journal-text"></i>
+                    <span>LMNOTES</span>
+                </div>
+                <button class="btn btn-sm btn-icon btn-primary" @click="clearForm" title="创建新笔记">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <!-- 侧边栏标题 -->
+                <div class="sidebar-title px-3 py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-muted">我的笔记列表</h6>
+                    <small class="text-muted" v-if="notes.length > 0">{{ notes.length }}篇</small>
+                </div>
+                <ul id="notesList">
+                    <!-- 加载中状态 -->
+                    <li v-if="loading.notes" class="note-item">
+                        <div class="d-flex align-items-center">
+                            <div class="loading-spinner me-2"></div>
+                            <span>加载中...</span>
+                        </div>
+                    </li>
+                    
+                    <!-- 没有笔记的状态 -->
+                    <li v-else-if="notes.length === 0" class="note-item">
+                        <div class="text-center p-3">
+                            <i class="bi bi-journal-x fs-4 d-block mb-2 text-muted"></i>
+                            <em>还没有笔记</em>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-primary" @click="clearForm">
+                                    <i class="bi bi-plus-circle"></i> 创建第一篇笔记
+                                </button>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- 笔记列表项 -->
+                    <transition-group name="slide">
+                        <li v-for="note in notes" 
+                            :key="note.id"
+                            class="note-item"
+                            :class="{ active: currentNote.id === note.id }"
+                            @click="selectNote(note)">
+                            <div class="d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong class="note-title">{{ note.title }}</strong>
+                                    <div class="note-actions">
+                                        <span class="badge rounded-pill bg-light text-dark" 
+                                              title="笔记ID">{{ formatId(note.id) }}</span>
+                                    </div>
+                                </div>
+                                <p class="mb-1 text-truncate text-muted small" v-if="note.description">
+                                    {{ note.description.substring(0, 100) }}
+                                </p>
+                                <div class="d-flex align-items-center mt-1">
+                                    <span class="note-tag badge bg-light text-primary" v-if="getWordCount(note.description) > 0">
+                                        {{ getWordCount(note.description) }}字
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                    </transition-group>
         </ul>
     </div>
-
-    <!-- 创建/编辑笔记区 (暂时简化) -->
-    <div class="section">
-        <h2>创建/编辑笔记</h2>
-        <input type="hidden" id="noteId">
-        <div>
-            <label for="noteTitle">标题:</label><br>
-            <input type="text" id="noteTitle" size="50">
         </div>
-        <div>
-            <label for="noteDescription">描述:</label><br>
-            <textarea id="noteDescription" rows="5"></textarea>
+        
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 顶部导航栏 -->
+            <div class="topbar">
+                <!-- 移动端的侧边栏展开按钮 -->
+                <button class="btn btn-sm btn-icon btn-light d-md-none me-2" @click="toggleSidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                
+                <div class="search-container">
+                    <div class="input-group">
+                        <span class="input-group-text" :class="{'bg-white border-end-0': !isDarkTheme, 'bg-dark border-end-0': isDarkTheme}">
+                            <i class="bi bi-search" :class="{'text-muted': !isDarkTheme, 'text-light': isDarkTheme}"></i>
+                        </span>
+                        <input type="text" class="form-control" :class="{'border-start-0': !isDarkTheme}"
+                               placeholder="搜索笔记..." 
+                               v-model="search.query"
+                               @keyup.enter="searchNotes">
+                        <button class="btn btn-primary" @click="searchNotes" :disabled="loading.search" style="min-width: 80px;">
+                            <span v-if="loading.search">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            </span>
+                            <span v-else>搜索</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="ms-auto d-flex align-items-center">
+                    <button class="btn btn-sm btn-icon btn-light ms-2" @click="toggleTheme" title="切换深色/浅色主题">
+                        <i class="bi" :class="{'bi-moon-stars': isDarkTheme, 'bi-sun': !isDarkTheme}"></i>
+                    </button>
+                </div>
         </div>
-        <button id="saveNoteBtn">保存笔记</button>
-        <button id="deleteNoteBtn" style="display: none;">删除笔记</button>
-        <button id="clearFormBtn">清空表单</button>
+            
+            <!-- 内容区域 -->
+            <div class="content-area">
+                <transition name="fade" mode="out-in">
+                    <!-- 搜索结果 -->
+                    <div v-if="search.hasSearched && search.results.length > 0" class="search-results-container">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">
+                                <i class="bi bi-search me-2 text-primary"></i>
+                                搜索结果: <span class="text-primary">"{{ search.query }}"</span>
+                                <span class="badge bg-primary ms-2">{{ search.results.length }}条</span>
+                            </h5>
+                            <button class="btn btn-sm btn-outline-secondary" @click="search.hasSearched = false">
+                                <i class="bi bi-x"></i> 关闭搜索
+                            </button>
     </div>
 
-    <!-- 搜索区 -->
-    <div class="section">
-        <h2>语义搜索</h2>
-        <input type="text" id="searchInput" size="50" placeholder="输入搜索查询...">
-        <button id="searchBtn">搜索</button>
-        <h3>搜索结果:</h3>
-        <ul id="searchResults">
-            <!-- 搜索结果将加载到这里 -->
+                        <ul id="searchResults" class="p-0">
+                            <transition-group name="slide">
+                                <li v-for="result in search.results" 
+                                    :key="result.id" 
+                                    class="search-result-item"
+                                    @click="selectSearchResult(result)">
+                                    <div class="result-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-journal-text me-2"></i>
+                                            {{ result.metadata?.title || '无标题' }}
+                                        </h6>
+                                        <span class="badge bg-primary">
+                                            相似度: {{ formatSimilarity(result.similarity) }}
+                                        </span>
+                                    </div>
+                                    <p class="mb-0 mt-2 result-description" v-if="result.metadata?.description">
+                                        {{ result.metadata.description.substring(0, 120) }}...
+                                    </p>
+                                    <div class="result-footer d-flex justify-content-between align-items-center mt-2">
+                                        <span class="text-primary small">点击查看</span>
+                                    </div>
+                                </li>
+                            </transition-group>
         </ul>
     </div>
 
-    <!-- 问答区 -->
-    <div class="section">
-        <h2>智能问答 (Ask AI)</h2>
-        <input type="text" id="askInput" size="50" placeholder="向 AI 提问...">
-        <button id="askBtn">提问</button>
-        <h3>AI 回答:</h3>
-        <div id="askAnswer" style="white-space: pre-wrap; background-color: #e9e9e9; padding: 10px; border-radius: 3px; margin-bottom:10px;"></div>
-        <h3>参考来源:</h3>
-        <ul id="askSources">
-            <!-- 来源笔记将加载到这里 -->
+                    <!-- 问答结果 -->
+                    <div v-else-if="qa.hasAsked && qa.answer" class="qa-results-container">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">
+                                <i class="bi bi-chat-left-dots me-2 text-secondary-accent"></i>
+                                问题: <span class="text-secondary-accent">"{{ qa.question }}"</span>
+                            </h5>
+                            <button class="btn btn-sm btn-outline-secondary" @click="qa.hasAsked = false">
+                                <i class="bi bi-x"></i> 关闭结果
+                            </button>
+                        </div>
+                        
+                        <div id="askAnswer" v-html="qa.answer"></div>
+                        
+                        <div class="sources-container mt-4">
+                            <h6 class="mb-3">
+                                <i class="bi bi-link-45deg me-2"></i>
+                                参考来源:
+                                <span v-if="qa.sources && qa.sources.length" 
+                                      class="badge bg-secondary-accent ms-2">{{ qa.sources.length }}个</span>
+                            </h6>
+                            <div v-if="!qa.sources || qa.sources.length === 0" class="empty-state">
+                                <i class="bi bi-info-circle"></i>
+                                <em>无参考来源</em>
+                            </div>
+                            <ul v-else id="askSources" class="p-0">
+                                <transition-group name="slide">
+                                    <li v-for="source in qa.sources" 
+                                        :key="source.id"
+                                        class="source-item"
+                                        @click="selectQASource(source)">
+                                        <div class="source-header d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-journal-text me-2"></i>
+                                                {{ source.metadata?.title || '无标题' }}
+                                            </h6>
+                                            <span class="badge bg-secondary-accent">
+                                                相似度: {{ formatSimilarity(source.similarity) }}
+                                            </span>
+                                        </div>
+                                        <p class="mb-0 mt-2 source-description" v-if="source.metadata?.description">
+                                            {{ source.metadata.description.substring(0, 100) }}...
+                                        </p>
+                                        <div class="mt-2 d-flex justify-content-end">
+                                            <span class="text-secondary-accent small">点击查看</span>
+                                        </div>
+                                    </li>
+                                </transition-group>
         </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 默认显示编辑区域 -->
+                    <div v-else class="note-editor-container">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-pencil-square me-2"></i> 
+                                    {{ currentNote.id ? '编辑笔记' : '创建笔记' }}
+                                </h5>
+                                <div v-if="currentNote.id" class="note-info">
+                                    <span class="badge bg-light text-dark d-flex align-items-center">
+                                        <i class="bi bi-hash me-1"></i>
+                                        {{ formatId(currentNote.id) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <input type="hidden" id="noteId" v-model="currentNote.id">
+                                
+                                <div class="mb-3">
+                                    <label for="noteTitle" class="form-label d-flex align-items-center">
+                                        <i class="bi bi-type-h1 me-2"></i>标题:
+                                    </label>
+                                    <input type="text" class="form-control form-control-lg" id="noteTitle" 
+                                           v-model="currentNote.title" placeholder="输入笔记标题...">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="noteDescription" class="form-label d-flex align-items-center">
+                                        <i class="bi bi-blockquote-left me-2"></i>内容:
+                                        <small class="text-muted ms-2" v-if="currentNote.description">
+                                            ({{ getWordCount(currentNote.description) }}字)
+                                        </small>
+                                    </label>
+                                    <textarea class="form-control" id="noteDescription" rows="12" 
+                                              v-model="currentNote.description" placeholder="输入笔记内容..."></textarea>
+                                </div>
+                                
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button id="saveNoteBtn" class="btn btn-primary" 
+                                            @click="saveNote" 
+                                            :disabled="loading.save || !currentNote.title.trim()">
+                                        <span v-if="loading.save">
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            保存中...
+                                        </span>
+                                        <span v-else>
+                                            <i class="bi bi-save me-1"></i> 保存笔记
+                                        </span>
+                                    </button>
+                                    
+                                    <button id="deleteNoteBtn" class="btn btn-danger" 
+                                            v-show="currentNote.id" 
+                                            @click="deleteNote"
+                                            :disabled="loading.delete">
+                                        <span v-if="loading.delete">
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            删除中...
+                                        </span>
+                                        <span v-else>
+                                            <i class="bi bi-trash me-1"></i> 删除笔记
+                                        </span>
+                                    </button>
+                                    
+                                    <button class="btn btn-secondary" 
+                                            @click="showImportModal"
+                                            title="导入Markdown或PDF文件">
+                                        <i class="bi bi-file-earmark-arrow-up me-1"></i> 导入文件
+                                    </button>
+                                    
+                                    <button id="clearFormBtn" class="btn btn-secondary" 
+                                            @click="clearForm"
+                                            v-if="currentNote.id || currentNote.title || currentNote.description">
+                                        <i class="bi bi-x-circle me-1"></i> 清空表单
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 问答卡片 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-chat-left-dots me-2"></i> 智能问答</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="input-group mb-3 qa-input-group">
+                                    <span class="input-group-text border-end-0">
+                                        <i class="bi bi-question-circle text-secondary-accent"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0" id="askInput" 
+                                           placeholder="向 AI 提问关于你笔记的问题..." 
+                                           v-model="qa.question"
+                                           @keyup.enter="askQuestion">
+                                    <button class="btn btn-secondary-accent" id="askBtn" 
+                                            @click="askQuestion"
+                                            :disabled="loading.ask || !qa.question.trim()"
+                                            style="min-width: 100px;">
+                                        <span v-if="loading.ask">
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            思考中...
+                                        </span>
+                                        <span v-else>
+                                            <i class="bi bi-send me-1"></i> 提问
+                                        </span>
+                                    </button>
+                                </div>
+                                <div class="qa-suggestions" v-if="!qa.question.trim()">
+                                    <p class="text-muted small mb-2">示例问题:</p>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <button class="btn btn-sm btn-light suggestion-btn" 
+                                                @click="qa.question = '总结一下我所有的笔记内容'">
+                                            总结一下我所有的笔记内容
+                                        </button>
+                                        <button class="btn btn-sm btn-light suggestion-btn" 
+                                                @click="qa.question = '帮我找出与人工智能相关的笔记'">
+                                            帮我找出与人工智能相关的笔记
+                                        </button>
+                                        <button class="btn btn-sm btn-light suggestion-btn" 
+                                                @click="qa.question = '我的笔记有哪些关键主题？'">
+                                            我的笔记有哪些关键主题？
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+        </div>
+        
+        <!-- 文件导入模态框 -->
+        <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="importModalLabel">
+                            <i class="bi bi-file-earmark-arrow-up me-2"></i>导入文件
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="fileInput" class="form-label">选择Markdown或PDF文件</label>
+                            <input class="form-control" type="file" id="fileInput" accept=".md,.pdf" @change="handleFileSelected">
+                            <div class="form-text">
+                                支持的文件格式: Markdown (.md), PDF (.pdf)
+                            </div>
+                        </div>
+                        <div v-if="importData.loading" class="text-center py-3">
+                            <div class="loading-spinner mb-2"></div>
+                            <p class="text-muted">解析文件中...</p>
+                        </div>
+                        <div v-if="importData.error" class="alert alert-danger">
+                            {{ importData.error }}
+                        </div>
+                        <div v-if="importData.preview" class="import-preview">
+                            <h6 class="border-bottom pb-2 mb-3">导入预览</h6>
+                            <div class="mb-3">
+                                <label class="form-label">标题</label>
+                                <input type="text" class="form-control" v-model="importData.title">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">内容预览 (前200字符)</label>
+                                <div class="border rounded p-2 bg-light">
+                                    {{ importData.content.substring(0, 200) }}{{ importData.content.length > 200 ? '...' : '' }}
+                                </div>
+                                <div class="form-text">
+                                    总字数: {{ getWordCount(importData.content) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" 
+                                @click="importAsNote" 
+                                :disabled="!importData.preview || importData.loading">
+                            导入为笔记
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- 引入 JavaScript 文件 -->
+    <!-- 引入 Vue (开发版本，包含警告) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- 引入 Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 引入 Vue 应用 -->
+    <script src="/static/app.js"></script>
+    
+    <!-- 引入原有 JavaScript (处理剩余功能) -->
     <script src="/static/script.js"></script>
 </body>
 </html> 

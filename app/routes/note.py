@@ -173,7 +173,7 @@ async def ask_question(query: QAQuery):
     print(f"收到问题: {user_question}")
 
     # 1. 检索相关笔记
-    search_limit = 3
+    search_limit = 100  # 设置一个较大的值，实际上不限制检索结果数量
     search_threshold = 0.2
     try:
         print(f"正在搜索相关笔记 (limit={search_limit}, threshold={search_threshold})...")
@@ -206,9 +206,9 @@ async def ask_question(query: QAQuery):
 
     # 3. 构建 Prompt
     prompt = f'''
-请根据以下提供的上下文信息来回答用户的问题。请只使用上下文中的信息，不要添加任何外部知识或自己的观点。
-**请尽量简洁、清晰地回答问题，最好不要超过三段话。**
-如果上下文不足以回答，请说"根据我所掌握的笔记信息，无法回答这个问题。"
+请根据以下提供的上下文信息来回答用户的问题。
+
+对于查找类问题，直接列出找到的相关笔记，简要说明其内容；对于分析类问题，给出简洁的见解；对于不明确的问题，可以友好地请求澄清。
 
 上下文：
 ---
@@ -228,7 +228,7 @@ async def ask_question(query: QAQuery):
         completion = openai_client.chat.completions.create(
             model="deepseek-chat",
             messages=[
-                {"role": "system", "content": "你是一个基于用户笔记内容回答问题的助手。"},
+                {"role": "system", "content": "你是一个友好且实用的笔记助手。你的目标是帮助用户管理和理解他们的笔记内容。保持对话自然、回答简洁有用，就像一个熟悉用户笔记的朋友。避免过度学术化或冗长的分析，而是专注于提供用户真正需要的信息。"},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7 
