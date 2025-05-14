@@ -1,5 +1,18 @@
-// LMNOTES Vue应用入口文件
+// 基于大语言模型的智能在线笔记管理系统 Vue应用入口文件
 const API_BASE_URL = '/api/v1/notes';
+
+// 配置Marked.js，用于Markdown解析
+marked.setOptions({
+  gfm: true, // 启用GitHub风格的Markdown
+  breaks: true, // 将回车转换为<br>
+  highlight: function(code, lang) {
+    // 如果有语言标识且Prism支持该语言，则使用Prism进行代码高亮
+    if (lang && Prism.languages[lang]) {
+      return Prism.highlight(code, Prism.languages[lang], lang);
+    }
+    return code; // 否则原样返回
+  }
+});
 
 const app = Vue.createApp({
   data() {
@@ -14,6 +27,10 @@ const app = Vue.createApp({
         category: 'default',
         isNew: true
       },
+      // 全局视图状态控制
+      view: {
+        current: 'editor', // 可能的值: 'editor', 'search', 'qa'
+      },
       // 搜索功能
       search: {
         query: '',
@@ -26,7 +43,14 @@ const app = Vue.createApp({
         question: '',
         answer: '',
         sources: [],
-        hasAsked: false
+        hasAsked: false,
+        sessionId: null,  // 会话ID，用于追问功能
+        isFollowUp: false,  // 是否是追问
+        messageHistory: [],  // 消息历史记录数组
+        showHistory: false,  // 是否显示历史记录 - 此字段保留但不再使用，默认总是显示历史
+        showSources: true,    // 是否显示参考来源，默认显示
+        showReturnToQA: false, // 是否显示返回问答按钮
+        previousState: null   // 用于保存问答状态以便返回
       },
       // 导入功能
       importData: {
@@ -50,7 +74,15 @@ const app = Vue.createApp({
       sidebarCollapsed: false,
       sidebarExpanded: false,
       // 主题设置
-      isDarkTheme: false
+      isDarkTheme: false,
+      // 编辑器设置
+      editor: {
+        previewMode: false, // 默认为编辑模式
+        realtimePreview: true, // 默认开启实时预览
+        lastSavedContent: '', // 上次保存的内容
+        isDirty: false // 是否有未保存的修改
+      },
+      _skipViewSwitch: false // 用于控制视图切换
     };
   },
   methods: {
@@ -108,14 +140,41 @@ const app = Vue.createApp({
       this.sidebarExpanded = !this.sidebarExpanded;
     },
     
-    // 选择笔记
+    // 选择某个笔记
     selectNote(note) {
-      this.currentNote = { ...note };
-      // 兼容模式：更新原有DOM元素
-      document.getElementById('noteId').value = note.id;
-      document.getElementById('noteTitle').value = note.title;
-      document.getElementById('noteDescription').value = note.description;
-      document.getElementById('deleteNoteBtn').style.display = 'inline-block';
+      console.log('选择笔记:', note.id);
+      
+      // 防止无效数据
+      if (!note || !note.id) {
+        console.error('无效的笔记数据');
+        return;
+      }
+      
+      // 更新当前笔记
+      this.currentNote = { 
+        id: note.id, 
+        title: note.title || '', 
+        description: note.description || '',
+        isNew: false
+      };
+      
+      // 更新上次保存的内容（用于脏状态检测）
+      this.editor.lastSavedContent = this.currentNote.description;
+      this.editor.isDirty = false;
+      
+      // 切换到编辑器视图（除非标记跳过视图切换）
+      if (!this._skipViewSwitch) {
+        this.view.current = 'editor';
+        
+        // 如果之前正在问答，则清除返回状态
+        if (this.qa.showReturnToQA) {
+          this.qa.showReturnToQA = false;
+          this.qa.previousState = null;
+        }
+      }
+      
+      // 搜索后选择笔记时，清除搜索状态
+      this.search.hasSearched = false;
       
       // 在移动设备上选择笔记后收起侧边栏
       if (window.innerWidth < 768) {
@@ -123,59 +182,87 @@ const app = Vue.createApp({
       }
     },
     
-    // 清空表单
+    // 清空表单(创建新笔记)
     clearForm() {
-      this.currentNote = { id: null, title: '', description: '', category: 'default', isNew: true };
-      // 兼容模式：更新原有DOM元素
-      document.getElementById('noteId').value = '';
-      document.getElementById('noteTitle').value = '';
-      document.getElementById('noteDescription').value = '';
-      document.getElementById('deleteNoteBtn').style.display = 'none';
+      this.currentNote = {
+        id: null,
+        title: '',
+        description: '',
+        isNew: true
+      };
+      
+      // 重置视图状态
+      this.view.current = 'editor';
+      
+      // 重置编辑器脏状态
+      this.editor.isDirty = false;
+      this.editor.lastSavedContent = '';
+      
+      // 清除返回问答状态
+      this.qa.showReturnToQA = false;
+      this.qa.previousState = null;
+      
+      // 清除之前选中的笔记
+      document.querySelectorAll('.note-item.active').forEach(el => {
+        el.classList.remove('active');
+      });
     },
     
     // 保存笔记
     async saveNote() {
-      // 获取输入值
-      const title = this.currentNote.title.trim();
-      const description = this.currentNote.description.trim();
+      // 防止重复提交
+      if (this.loading.save) return;
       
-      if (!title) {
-        alert('标题不能为空！');
+      // 验证标题不能为空
+      if (!this.currentNote.title.trim()) {
+        alert('笔记标题不能为空');
         return;
       }
       
-      const id = this.currentNote.id;
-      const isUpdating = !!id;
-      const url = isUpdating ? `${API_BASE_URL}/${id}` : `${API_BASE_URL}/`;
-      const method = isUpdating ? 'PUT' : 'POST';
-      
-      console.log(`${isUpdating ? '更新' : '创建'}笔记...`);
+      // 标记为加载中
       this.loading.save = true;
       
       try {
+        const method = this.currentNote.id ? 'PUT' : 'POST';
+        const url = this.currentNote.id 
+          ? `${API_BASE_URL}/${this.currentNote.id}` 
+          : `${API_BASE_URL}/`;
+        
+        console.log(`保存笔记 - ${method}:`, this.currentNote);
+        
         const response = await fetch(url, {
           method: method,
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            title: title,
-            description: description
+            title: this.currentNote.title,
+            description: this.currentNote.description
           }),
         });
         
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.detail || 'Unknown error'}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        console.log('笔记保存成功');
-        this.clearForm();
+        // 解析响应并更新ID（对于新笔记）
+        const data = await response.json();
+        if (!this.currentNote.id && data.id) {
+          this.currentNote.id = data.id;
+        }
+        
+        // 更新最后保存的内容状态
+        this.editor.lastSavedContent = this.currentNote.description;
+        this.editor.isDirty = false;
+        
+        console.log('笔记保存成功:', data);
+        
+        // 刷新笔记列表
         await this.fetchNotes();
         
       } catch (error) {
         console.error('保存笔记失败:', error);
-        alert(`保存笔记失败: ${error.message}`);
+        alert(`保存失败: ${error.message}`);
       } finally {
         this.loading.save = false;
       }
@@ -235,6 +322,9 @@ const app = Vue.createApp({
       this.search.hasSearched = true;
       this.search.results = [];
       
+      // 设置当前视图为搜索视图
+      this.view.current = 'search';
+      
       try {
         // 使用 URLSearchParams 构建查询参数
         const params = new URLSearchParams({
@@ -270,6 +360,7 @@ const app = Vue.createApp({
       
       // 清除搜索结果显示，回到编辑视图
       this.search.hasSearched = false;
+      this.view.current = 'editor';
     },
     
     // 向AI提问
@@ -282,11 +373,26 @@ const app = Vue.createApp({
         return;
       }
       
-      console.log(`提问: ${question}`);
+      console.log(`提问: ${question}${this.qa.sessionId ? ' (追问)' : ''}`);
       this.loading.ask = true;
       this.qa.hasAsked = true;
-      this.qa.answer = '';
-      this.qa.sources = [];
+      
+      // 设置当前视图为问答视图
+      this.view.current = 'qa';
+      
+      // 保存之前的答案，以便在API调用失败时恢复
+      const previousAnswer = this.qa.answer;
+      const previousSources = [...this.qa.sources];
+      const previousHistory = [...this.qa.messageHistory];
+      
+      // 先添加用户问题到本地消息历史（为了即时显示）
+      if (!this.qa.messageHistory.some(msg => msg.role === 'user' && msg.content === question)) {
+        this.qa.messageHistory.push({
+          role: 'user',
+          content: question,
+          timestamp: new Date().getTime()
+        });
+      }
       
       try {
         const response = await fetch(`${API_BASE_URL}/ask/`, {
@@ -294,7 +400,10 @@ const app = Vue.createApp({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ question: question }),
+          body: JSON.stringify({ 
+            question: question,
+            session_id: this.qa.sessionId // 发送会话ID（如果有）
+          }),
         });
         
         if (!response.ok) {
@@ -308,24 +417,139 @@ const app = Vue.createApp({
         this.qa.answer = result.answer;
         this.qa.sources = result.sources || [];
         
+        // 保存会话ID以支持追问
+        if (result.session_id) {
+          this.qa.sessionId = result.session_id;
+          this.qa.isFollowUp = true;
+          console.log(`会话ID: ${this.qa.sessionId}`);
+          
+          // 如果后端返回了消息历史，则使用后端返回的完整历史
+          if (result.message_history && result.message_history.length > 0) {
+            // 将后端返回的消息历史转换为前端格式（添加timestamp）
+            this.qa.messageHistory = result.message_history.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp || new Date().getTime()
+            }));
+            console.log(`接收到 ${this.qa.messageHistory.length} 条历史消息`);
+          } else {
+            // 后端没有返回消息历史，添加当前问答到历史记录（确保不重复添加）
+            if (!this.qa.messageHistory.some(msg => msg.role === 'assistant' && msg.content === result.answer)) {
+              this.qa.messageHistory.push(
+                { role: 'assistant', content: result.answer, timestamp: new Date().getTime() }
+              );
+            }
+          }
+        }
+        
+        // 清空输入框，方便继续提问
+        this.qa.question = '';
+        
+        // 延迟执行代码高亮
+        this.$nextTick(() => {
+          // 高亮所有代码块
+          document.querySelectorAll('pre code').forEach((block) => {
+            if (window.Prism) {
+              Prism.highlightElement(block);
+            }
+          });
+          
+          // 滚动到底部
+          const contentArea = document.querySelector('.content-area');
+          if (contentArea) {
+            contentArea.scrollTop = contentArea.scrollHeight;
+          }
+        });
+        
       } catch (error) {
         console.error('问答失败:', error);
-        this.qa.answer = `问答失败: ${error.message}`;
+        
+        // 恢复之前的答案、来源和历史记录
+        this.qa.messageHistory = previousHistory;
+        this.qa.answer = previousAnswer;
+        this.qa.sources = previousSources;
+        
+        // 添加错误消息到历史，使用代码块格式展示错误
+        this.qa.messageHistory.push({
+          role: 'assistant',
+          content: `**问答失败**\n\n\`\`\`\n${error.message}\n\`\`\``,
+          timestamp: new Date().getTime(),
+          isError: true
+        });
       } finally {
         this.loading.ask = false;
       }
     },
     
+    // 开始新问题（清除当前会话）
+    startNewQuestion() {
+      this.qa.sessionId = null;
+      this.qa.isFollowUp = false;
+      this.qa.hasAsked = false;
+      this.qa.question = '';
+      this.qa.answer = '';
+      this.qa.sources = [];
+      this.qa.messageHistory = [];
+      this.qa.showHistory = false;
+      this.qa.showSources = true;
+      this.qa.showReturnToQA = false;
+      this.qa.previousState = null;
+      
+      // 重置视图状态为编辑器
+      this.view.current = 'editor';
+      
+      console.log('开始新问题，会话已重置');
+    },
+    
     // 选择问答来源笔记
     selectQASource(source) {
-      this.selectNote({
-        id: source.id,
-        title: source.metadata?.title || '无标题',
-        description: source.metadata?.description || ''
-      });
+      // 标记是否来自问答视图的点击
+      const fromQAView = this.view.current === 'qa';
+      console.log('选择参考来源:', source.id, '来自问答视图:', fromQAView);
       
-      // 清除问答结果显示，回到编辑视图
-      this.qa.hasAsked = false;
+      try {
+        // 临时保存当前对话状态
+        const previousQAState = {
+          hasAsked: this.qa.hasAsked,
+          answer: this.qa.answer,
+          sources: [...this.qa.sources],
+          messageHistory: [...this.qa.messageHistory],
+          sessionId: this.qa.sessionId,
+          isFollowUp: this.qa.isFollowUp
+        };
+        
+        // 设置视图标记，阻止selectNote方法中的自动视图切换
+        this._skipViewSwitch = true;
+        
+        // 选择笔记
+        this.selectNote({
+          id: source.id,
+          title: source.metadata?.title || '无标题',
+          description: source.metadata?.description || ''
+        });
+        
+        // 如果是从问答视图点击的参考来源，设置一个按钮返回问答
+        if (fromQAView) {
+          // 显示返回问答的提示
+          this.qa.showReturnToQA = true;
+          
+          // 保存问答状态以便返回
+          this.qa.previousState = previousQAState;
+        }
+        
+        // 手动设置视图为编辑器视图
+        this.$nextTick(() => {
+          this.view.current = 'editor';
+          console.log('已切换到编辑器视图');
+        });
+      } catch (error) {
+        console.error('选择参考来源失败:', error);
+      } finally {
+        // 清除视图切换标记 - 延迟执行以确保视图已更新
+        setTimeout(() => {
+          this._skipViewSwitch = false;
+        }, 100);
+      }
     },
     
     // 监听表单变化 (双向绑定辅助函数)
@@ -333,6 +557,21 @@ const app = Vue.createApp({
       // 从DOM元素获取最新值 (兼容原有代码)
       this.currentNote.title = document.getElementById('noteTitle').value;
       this.currentNote.description = document.getElementById('noteDescription').value;
+      
+      // 检查是否有未保存的修改
+      this.checkDirtyState();
+    },
+    
+    // 检查编辑器内容是否有未保存的修改
+    checkDirtyState() {
+      if (this.currentNote.id) {
+        // 对于已有笔记，比较当前内容和上次保存的内容
+        this.editor.isDirty = this.currentNote.description !== this.editor.lastSavedContent;
+      } else {
+        // 对于新笔记，如果有内容则标记为未保存
+        this.editor.isDirty = this.currentNote.title.trim() !== '' || 
+                             this.currentNote.description.trim() !== '';
+      }
     },
     
     // 格式化ID (只显示前几个字符)
@@ -394,6 +633,7 @@ const app = Vue.createApp({
     
     // 格式化相似度分数
     formatSimilarity(similarity) {
+      if (typeof similarity !== 'number') return '0.000';
       return similarity.toFixed(3);
     },
 
@@ -583,13 +823,245 @@ const app = Vue.createApp({
         this.importData.error = '导入笔记时出错: ' + error.message;
         this.importData.loading = false;
       }
+    },
+    
+    // 切换历史记录显示状态
+    toggleHistoryView() {
+      this.qa.showHistory = !this.qa.showHistory;
+    },
+    
+    // 格式化时间戳
+    formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    },
+    
+    // 解析Markdown文本为HTML
+    parseMarkdown(text) {
+      if (!text) return '';
+      
+      try {
+        // 防止频繁更新导致性能问题
+        // 如果快速输入时暂时不渲染代码高亮
+        const html = marked.parse(text);
+        
+        // 如果在实时预览模式下，只在内容较少或停止输入后执行代码高亮
+        if (this.editor.realtimePreview) {
+          // 如果内容少于1000字符，立即执行高亮
+          if (text.length < 1000) {
+            this.$nextTick(() => {
+              document.querySelectorAll('.preview-container pre code').forEach((block) => {
+                if (window.Prism) {
+                  Prism.highlightElement(block);
+                }
+              });
+            });
+          } else {
+            // 内容较多时，使用防抖延迟执行高亮
+            clearTimeout(this._parseMarkdownTimer);
+            this._parseMarkdownTimer = setTimeout(() => {
+              document.querySelectorAll('.preview-container pre code').forEach((block) => {
+                if (window.Prism) {
+                  Prism.highlightElement(block);
+                }
+              });
+            }, 500);
+          }
+        } else {
+          // 非实时预览模式下，正常执行高亮
+          this.$nextTick(() => {
+            document.querySelectorAll('pre code').forEach((block) => {
+              if (window.Prism) {
+                Prism.highlightElement(block);
+              }
+            });
+          });
+        }
+        
+        return html;
+      } catch (error) {
+        console.error('Markdown解析错误:', error);
+        return text; // 解析失败时返回原文本
+      }
+    },
+    
+    // 移除Markdown格式符号，用于纯文本显示
+    stripMarkdown(text) {
+      if (!text) return '';
+      
+      return text
+        // 移除标题符号
+        .replace(/#{1,6}\s+/g, '')
+        // 移除粗体和斜体
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/__(.+?)__/g, '$1')
+        .replace(/_(.+?)_/g, '$1')
+        // 移除代码块
+        .replace(/```[\s\S]*?```/g, '[代码块]')
+        // 移除行内代码
+        .replace(/`([^`]+)`/g, '$1')
+        // 移除链接，保留文本
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        // 移除图片
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '[图片:$1]')
+        // 移除引用符号
+        .replace(/^\s*>\s+/gm, '')
+        // 移除HTML标签
+        .replace(/<[^>]*>/g, '')
+        // 移除列表符号
+        .replace(/^\s*[-*+]\s+/gm, '')
+        .replace(/^\s*\d+\.\s+/gm, '')
+        // 移除水平线
+        .replace(/^\s*[-*_]{3,}\s*$/gm, '');
+    },
+    
+    // 在文本区域插入Markdown格式
+    insertMarkdown(type) {
+      const textarea = document.getElementById('noteDescription');
+      if (!textarea) return;
+      
+      // 保存当前的选择位置
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = this.currentNote.description.substring(start, end);
+      
+      let insertedText = '';
+      
+      switch (type) {
+        case 'heading':
+          insertedText = `## ${selectedText || '标题'}`;
+          break;
+        case 'bold':
+          insertedText = `**${selectedText || '粗体文本'}**`;
+          break;
+        case 'italic':
+          insertedText = `*${selectedText || '斜体文本'}*`;
+          break;
+        case 'link':
+          insertedText = `[${selectedText || '链接文本'}](http://example.com)`;
+          break;
+        case 'code':
+          if (selectedText.includes('\n')) {
+            // 多行代码块
+            insertedText = `\`\`\`\n${selectedText || '// 代码块'}\n\`\`\``;
+          } else {
+            // 行内代码
+            insertedText = `\`${selectedText || '代码'}\``;
+          }
+          break;
+        case 'list':
+          if (selectedText) {
+            // 将选中文本转换为列表
+            insertedText = selectedText
+              .split('\n')
+              .map(line => line ? `- ${line}` : line)
+              .join('\n');
+          } else {
+            insertedText = "- 列表项1\n- 列表项2\n- 列表项3";
+          }
+          break;
+        case 'ordered-list':
+          if (selectedText) {
+            // 将选中文本转换为有序列表
+            insertedText = selectedText
+              .split('\n')
+              .map((line, i) => line ? `${i + 1}. ${line}` : line)
+              .join('\n');
+          } else {
+            insertedText = "1. 第一项\n2. 第二项\n3. 第三项";
+          }
+          break;
+        case 'quote':
+          if (selectedText) {
+            // 将选中文本转换为引用
+            insertedText = selectedText
+              .split('\n')
+              .map(line => line ? `> ${line}` : line)
+              .join('\n');
+          } else {
+            insertedText = "> 引用内容";
+          }
+          break;
+        case 'table':
+          insertedText = `| 表头1 | 表头2 | 表头3 |\n|-------|-------|-------|\n| 内容1 | 内容2 | 内容3 |\n| 内容4 | 内容5 | 内容6 |`;
+          break;
+        case 'image':
+          insertedText = `![${selectedText || '图片描述'}](https://example.com/image.jpg)`;
+          break;
+        default:
+          return;
+      }
+      
+      // 插入新内容
+      const newText = this.currentNote.description.substring(0, start) + 
+                     insertedText + 
+                     this.currentNote.description.substring(end);
+      
+      // 更新文本区域内容
+      this.currentNote.description = newText;
+      
+      // 聚焦文本区域并设置光标位置
+      this.$nextTick(() => {
+        textarea.focus();
+        const newCursorPos = start + insertedText.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      });
+    },
+    
+    // 加载用户界面偏好设置
+    loadUserPreferences() {
+      // 加载主题偏好
+      this.loadThemePreference();
+      
+      // 加载编辑器偏好
+      const realtimePreview = localStorage.getItem('realtimePreview');
+      if (realtimePreview !== null) {
+        this.editor.realtimePreview = realtimePreview === 'true';
+      }
+    },
+    
+    // 保存用户界面偏好设置
+    saveUserPreferences() {
+      // 保存编辑器偏好
+      localStorage.setItem('realtimePreview', this.editor.realtimePreview);
+    },
+
+    // 返回问答视图
+    returnToQA() {
+      if (!this.qa.previousState) {
+        console.error('没有保存的问答状态可以返回');
+        return;
+      }
+      
+      // 恢复问答状态
+      this.qa.hasAsked = this.qa.previousState.hasAsked;
+      this.qa.answer = this.qa.previousState.answer;
+      this.qa.sources = this.qa.previousState.sources;
+      this.qa.messageHistory = this.qa.previousState.messageHistory;
+      this.qa.sessionId = this.qa.previousState.sessionId;
+      this.qa.isFollowUp = this.qa.previousState.isFollowUp;
+      
+      // 切换到问答视图
+      this.view.current = 'qa';
+      
+      // 隐藏返回按钮
+      this.qa.showReturnToQA = false;
+      this.qa.previousState = null;
+      
+      console.log('已返回问答视图');
     }
   },
   // 页面加载时获取笔记列表
   mounted() {
     console.log('Vue应用已挂载，正在加载笔记...');
     this.fetchNotes();
-    this.loadThemePreference();
+    
+    // 加载用户偏好设置
+    this.loadUserPreferences();
+    
+    // 初始化视图状态
+    this.view.current = 'editor';
     
     // 为传统表单元素添加事件监听，确保数据同步
     document.getElementById('noteTitle').addEventListener('input', this.updateNoteFromForm);

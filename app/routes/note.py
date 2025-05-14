@@ -9,6 +9,12 @@ import os
 import httpx
 from openai import OpenAI
 from pydantic import BaseModel
+from ..services.session_manager import (
+    create_session, 
+    get_session, 
+    add_message, 
+    get_conversation_history
+)
 
 # 初始化路由器
 router = APIRouter()
@@ -163,16 +169,34 @@ async def search_debug(
 # 定义接收问题的请求体模型
 class QAQuery(BaseModel):
     question: str
+    session_id: Optional[str] = None  # 可选的会话ID，用于追问
 
 @router.post("/ask/", response_model=QAResponse)
 async def ask_question(query: QAQuery):
     """
     接收用户问题，检索相关笔记，并使用 LLM 基于笔记内容生成答案。
+    支持会话管理和追问功能。
     """
     user_question = query.question
-    print(f"收到问题: {user_question}")
-
-    # 1. 检索相关笔记
+    session_id = query.session_id
+    print(f"收到问题: {user_question}, 会话ID: {session_id}")
+    
+    # 1. 会话管理：获取或创建会话
+    if session_id:
+        session = get_session(session_id)
+        if session is None:
+            print(f"会话 {session_id} 不存在或已过期，创建新会话")
+            session = create_session()
+            session_id = session.session_id
+    else:
+        print("创建新会话")
+        session = create_session()
+        session_id = session.session_id
+    
+    # 记录用户问题
+    add_message(session_id, "user", user_question)
+    
+    # 2. 检索相关笔记
     search_limit = 100  # 设置一个较大的值，实际上不限制检索结果数量
     search_threshold = 0.2
     try:
@@ -188,27 +212,73 @@ async def ask_question(query: QAQuery):
         print(f"搜索笔记时发生错误: {e}")
         raise HTTPException(status_code=500, detail="检索相关笔记时出错")
 
-    # 2. 处理检索结果和构建上下文
+    # 3. 处理检索结果和构建上下文
     if not sources:
+        answer = "抱歉，在您的笔记中找不到与您问题相关的信息。"
+        add_message(session_id, "assistant", answer)
+        
+        # 获取更新后的历史记录
+        message_history = get_conversation_history(session_id)
+        
         return QAResponse(
-            answer="抱歉，在您的笔记中找不到与您问题相关的信息。",
-            sources=[]
+            answer=answer,
+            sources=[],
+            session_id=session_id,
+            message_history=message_history
         )
 
-    context_string = "\n\n".join([
-        f"笔记ID: {s.id}\n标题: {s.metadata.get('title', 'N/A')}\n描述: {s.metadata.get('description', 'N/A')}" 
-        for s in sources
-    ])
-    max_context_length = 3000
-    if len(context_string) > max_context_length:
-        context_string = context_string[:max_context_length] + "..."
-        print("上下文过长，已截断")
+    # 更智能地构建上下文，确保所有笔记都被包含
+    max_context_length = 10000  # 增加上下文长度限制
+    
+    # 为每个笔记分配合理的空间
+    notes_count = len(sources)
+    if notes_count > 0:
+        # 计算每个笔记可以分配的平均长度
+        avg_length_per_note = max_context_length // notes_count
+        # 确保每个笔记至少有200字符
+        avg_length_per_note = max(200, avg_length_per_note)
+        
+        context_parts = []
+        for i, s in enumerate(sources):
+            title = s.metadata.get('title', 'N/A')
+            description = s.metadata.get('description', 'N/A')
+            similarity = f"{s.similarity:.3f}" if hasattr(s, 'similarity') else "N/A"
+            
+            # 如果笔记内容太长，截断描述
+            if len(description) > avg_length_per_note - 100:  # 预留标题和ID的空间
+                description = description[:avg_length_per_note - 100] + "..."
+            
+            note_context = f"笔记ID: {s.id}\n标题: {title}\n相似度: {similarity}\n描述: {description}"
+            context_parts.append(note_context)
+        
+        context_string = "\n\n".join(context_parts)
+        
+        # 最终安全检查
+        if len(context_string) > max_context_length:
+            context_string = context_string[:max_context_length] + "..."
+            print(f"上下文仍然过长，已截断至{max_context_length}字符")
+        
+        print(f"上下文包含了所有{notes_count}个笔记，总字符数：{len(context_string)}")
+    else:
+        context_string = ""
 
-    # 3. 构建 Prompt
+    # 4. 获取对话历史
+    conversation_history = get_conversation_history(session_id)
+    has_history = len(conversation_history) > 1  # 不仅仅包含当前问题
+    
+    # 5. 构建 Prompt
     prompt = f'''
 请根据以下提供的上下文信息来回答用户的问题。
 
-对于查找类问题，直接列出找到的相关笔记，简要说明其内容；对于分析类问题，给出简洁的见解；对于不明确的问题，可以友好地请求澄清。
+当用户询问特定主题相关的笔记或内容时：
+1. 不要按笔记逐一罗列内容，而是将所有相关信息融合为一篇连贯、自然的文章
+2. 根据主题自然组织内容，而不是按"笔记1"、"笔记2"这样的方式分类
+3. 对内容进行适当的引申和分析，展示见解，而不仅仅是重复笔记中的事实
+4. 确保内容之间有自然的过渡和连接，就像这些内容本来就是一篇整体文章
+5. 可以加入自己的分析和观点，对信息进行整合和提炼
+6. 使用生动、流畅的语言，体现出对主题的理解和思考
+
+{"这是一个追问，请结合之前的对话历史来理解用户的意图。" if has_history else ""}
 
 上下文：
 ---
@@ -221,28 +291,51 @@ async def ask_question(query: QAQuery):
 '''
     print("构建的 Prompt (为保护隐私，通常不打印完整上下文):")
     print(f"用户问题: {user_question}")
+    print(f"是否有对话历史: {has_history}")
 
-    # 4. 调用 LLM 生成答案
+    # 6. 调用 LLM 生成答案
     try:
         print("正在调用 LLM API (无 max_tokens 限制)... 使用模型 deepseek-chat")
+        
+        # 构建消息列表
+        messages = [
+            {"role": "system", "content": "你是一个知识渊博、文笔出色的笔记助手。当用户询问某主题相关内容时，你不会简单地按笔记分类罗列信息，而是将所有检索到的相关内容融合为一篇连贯、自然的文章，就像这些内容本来就是一个整体。你擅长从多个来源整合信息，添加自己的见解，进行适当的引申和分析，使内容更加丰富和有价值。你的回答不会有明显的'笔记1'、'笔记2'这样的分段方式，而是通过自然的主题过渡和逻辑关联将内容连接起来。你的行文流畅自然，既有知识性，也有思考性。"}
+        ]
+        
+        # 如果有对话历史，则添加历史消息
+        if has_history:
+            # 对于追问，我们需要提供前面的对话历史
+            # 但排除最后一条用户消息，因为它会通过prompt传入
+            for msg in conversation_history[:-1]:  
+                messages.append(msg)
+        
+        # 添加当前提问
+        messages.append({"role": "user", "content": prompt})
+        
         completion = openai_client.chat.completions.create(
             model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": "你是一个友好且实用的笔记助手。你的目标是帮助用户管理和理解他们的笔记内容。保持对话自然、回答简洁有用，就像一个熟悉用户笔记的朋友。避免过度学术化或冗长的分析，而是专注于提供用户真正需要的信息。"},
-                {"role": "user", "content": prompt}
-            ],
+            messages=messages,
             temperature=0.7 
         )
         generated_answer = completion.choices[0].message.content.strip()
         print(f"LLM 返回答案: {generated_answer}")
+        
+        # 记录助手回答
+        add_message(session_id, "assistant", generated_answer)
+        
     except Exception as e:
         print(f"调用 LLM API 时发生错误: {e}")
         generated_answer = f"抱歉，在调用 AI 模型生成答案时遇到错误: {str(e)}"
 
-    # 5. 返回最终响应
+    # 7. 返回最终响应
+    # 获取完整的消息历史
+    message_history = get_conversation_history(session_id)
+    
     return QAResponse(
         answer=generated_answer,
-        sources=sources 
+        sources=sources,
+        session_id=session_id,
+        message_history=message_history
     )
 
 # --- RAG 功能结束 --- 
