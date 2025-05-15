@@ -77,3 +77,5 @@ LMNOTES 是一个使用 FastAPI 和 MongoDB 构建的智能在线笔记管理系
 ## API 文档 接口
 
 应用启动后，可以在 `http://localhost:8000/docs` 访问自动生成的 FastAPI Swagger UI 文档，了解详细的 API 端点信息和请求/响应格式。
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ZhaoMo14/LMNOTES)
